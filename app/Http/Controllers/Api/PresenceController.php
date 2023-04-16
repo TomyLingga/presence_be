@@ -40,7 +40,7 @@ class PresenceController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'dates' => 'required',
-            'dept' => 'required',
+            'grade' => 'required',
             'academic_year' => 'required',
             'semester' => 'required'
         ]);
@@ -52,9 +52,17 @@ class PresenceController extends Controller
             ], 400);
         }
 
-        $dept = Http::withHeaders(['X-Auth-Token' => $this->token])->get($this->base_url . 'dept/get/' . $request->dept)->json();
+        $grade = Http::withHeaders(['X-Auth-Token' => $this->token])->get($this->base_url . 'grade/get/' . $request->grade)->json();
+        $dept = Http::withHeaders(['X-Auth-Token' => $this->token])->get($this->base_url . 'dept/get/' . $grade['data']['dept_id'])->json();
         $semester = Http::withHeaders(['X-Auth-Token' => $this->token])->get($this->base_url . 'semesters/get/' . $request->semester)->json();
         $financial_year = Http::withHeaders(['X-Auth-Token' => $this->token])->get($this->base_url . 'financial_year/get/' . $request->academic_year)->json();
+
+        if (empty($grade['data'])) {
+            return response()->json([
+                'message' => 'Grade not found.',
+                'success' => false
+            ], 404);
+        }
 
         if (empty($dept['data'])) {
             return response()->json([
@@ -78,6 +86,7 @@ class PresenceController extends Controller
 
         $data = Presence::create([
             'dates' => $request->dates,
+            'grade' => $grade['data']['id'],
             'dept' => $dept['data']['id'],
             'academic_year' => $financial_year['data']['year'],
             'semester' => $semester['data']['id'],
@@ -114,22 +123,9 @@ class PresenceController extends Controller
 
     public function update(Request $request, $id)
     {
-        $data = Presence::find($id);
-
-        if (!$data) {
-            return response()->json([
-                'message' => 'Record not found.',
-                'success' => false
-            ], 404);
-        }
-
-        $dept = Http::withHeaders(['X-Auth-Token' => $this->token])->get($this->base_url . 'dept/get/' . $request->dept)->json();
-        $semester = Http::withHeaders(['X-Auth-Token' => $this->token])->get($this->base_url . 'semesters/get/' . $request->semester)->json();
-        $financial_year = Http::withHeaders(['X-Auth-Token' => $this->token])->get($this->base_url . 'financial_year/get/' . $request->academic_year)->json();
-
         $validator = Validator::make($request->all(), [
             'dates' => 'required',
-            'dept' => 'required',
+            'grade' => 'grade',
             'academic_year' => 'required',
             'semester' => 'required'
         ]);
@@ -142,7 +138,21 @@ class PresenceController extends Controller
             ]);
         }
 
-        if (empty($dept['data']) || empty($semester['data']) || empty($financial_year['data'])) {
+        $data = Presence::find($id);
+
+        if (!$data) {
+            return response()->json([
+                'message' => 'Record not found.',
+                'success' => false
+            ], 404);
+        }
+
+        $grade = Http::withHeaders(['X-Auth-Token' => $this->token])->get($this->base_url . 'grade/get/' . $request->grade)->json();
+        $dept = Http::withHeaders(['X-Auth-Token' => $this->token])->get($this->base_url . 'dept/get/' . $grade['data']['dept_id'])->json();
+        $semester = Http::withHeaders(['X-Auth-Token' => $this->token])->get($this->base_url . 'semesters/get/' . $request->semester)->json();
+        $financial_year = Http::withHeaders(['X-Auth-Token' => $this->token])->get($this->base_url . 'financial_year/get/' . $request->academic_year)->json();
+
+        if (empty($grade['data']) || empty($semester['data']) || empty($financial_year['data']) || empty($grade['data'])) {
             return response()->json([
                 'message' => 'Data not found.',
                 'success' => false
@@ -151,6 +161,7 @@ class PresenceController extends Controller
 
         $data->update([
             'dates' => $request->dates,
+            'grade' => $grade['data']['id'],
             'dept' => $dept['data']['id'],
             'academic_year' => $financial_year['data']['year'],
             'semester' => $semester['data']['id'],

@@ -16,6 +16,7 @@ class Presence extends Model
     protected $fillable = [
         'dates',
         'dept',
+        'grade',
         'academic_year',
         'semester',
         'approved'

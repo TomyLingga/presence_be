@@ -55,11 +55,32 @@ class PresenceTransController extends Controller
 
         $presence = Presence::find($request->presence_id);
 
+        // dd($presence->approved);
+
         if (empty($presence)) {
             return response()->json([
                 'message' => 'Presence not found.',
                 'success' => false
             ], 404);
+        }
+
+        if ($presence->approved == '1') {
+            return response()->json([
+                'message' => 'Presence already approved.',
+                'success' => false
+            ], 404);
+        }
+
+        $existingRecord = PresenceTrans::where([
+            'student_id' => $request->student_id,
+            'presence_id' => $request->presence_id,
+        ])->first();
+
+        if (!empty($existingRecord)) {
+            return response()->json([
+                'message' => 'File already exists.',
+                'success' => false
+            ], 400);
         }
 
         $student = Http::withHeaders(['X-Auth-Token' => $this->token])
